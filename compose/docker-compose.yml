@@ -1,0 +1,52 @@
+version: '3.7'
+
+networks:
+  blesta:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.238.0/24
+
+services:
+
+  traefik:
+    image: traefik:v2.2
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - blesta
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DATA_DIR_TRAEFIK}/traefik/traefik.toml:/etc/traefik/traefik.toml
+
+  app:
+    image: blesta:latest
+    restart: always
+    env_file:
+      - .env
+    networks:
+      blesta:
+        ipv4_address: 172.18.238.5
+    depends_on:
+      - db
+    volumes:
+      - ${DATA_DIR_BLESTA}/blesta/app:/var/www/app/blesta
+      - ${DATA_DIR_BLESTA}/blesta/logs:/var/www/app/logs_blesta
+      - ${DATA_DIR_BLESTA}/blesta/uploads:/var/www/app/uploads
+    labels:
+      - "traefik.http.routers.blesta.rule=Host(`${SUBDOMAIN_BLESTA}.${DOMAIN}`)"
+      - "traefik.http.routers.blesta.tls=true"
+
+  db:
+    image: mariadb:10.5
+    restart: always
+    env_file:
+      - .env
+    networks:
+     blesta:
+    volumes:
+      - ${DATA_DIR_DB}/db:/var/lib/mysql
