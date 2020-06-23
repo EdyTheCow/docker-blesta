@@ -1,8 +1,8 @@
 FROM php:7.2-apache
 
-ENV BLESTA_VERSION=4.10.1
-ENV DOWNLOAD_ID=152
-ENV MAXMIND_KEY=key
+ENV BLESTA_VERSION=4.10.1 \
+    DOWNLOAD_ID=152 \
+    MAXMIND_KEY=key
 
 ENV BUILD_DEPS \
         cron \
@@ -57,10 +57,10 @@ RUN apt-get update \
     && rm -Rf /tmp/ioncube.zip \
     && echo "zend_extension=ioncube/ioncube_loader_lin_7.2.so" > /usr/local/etc/php/conf.d/00_docker-php-ext-ioncube.ini
 
-ADD supervisord.conf /etc/supervisor/supervisord.conf
-ADD logformat.conf /etc/apache2/conf-enabled/logformat.conf
-ADD remoteip.conf /etc/apache2/conf-enabled/remoteip.conf
-ADD entrypoint.sh /entrypoint.sh
+COPY ./supervisord.conf /etc/supervisor/supervisord.conf \
+     ./logformat.conf /etc/apache2/conf-enabled/logformat.conf \
+     ./remoteip.conf /etc/apache2/conf-enabled/remoteip.conf \
+     ./entrypoint.sh /entrypoint.sh
 
 RUN mkdir /var/www/app \
     && curl -o blesta.zip -sSL https://account.blesta.com/client/plugin/download_manager/client_main/download/${DOWNLOAD_ID}/blesta-${BLESTA_VERSION}.zip \
