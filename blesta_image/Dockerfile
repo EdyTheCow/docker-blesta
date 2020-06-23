@@ -57,10 +57,10 @@ RUN apt-get update \
     && rm -Rf /tmp/ioncube.zip \
     && echo "zend_extension=ioncube/ioncube_loader_lin_7.2.so" > /usr/local/etc/php/conf.d/00_docker-php-ext-ioncube.ini
 
-COPY ./supervisord.conf /etc/supervisor/supervisord.conf \
-     ./logformat.conf /etc/apache2/conf-enabled/logformat.conf \
-     ./remoteip.conf /etc/apache2/conf-enabled/remoteip.conf \
-     ./entrypoint.sh /entrypoint.sh
+COPY ./supervisord.conf /etc/supervisor/supervisord.conf
+COPY ./logformat.conf /etc/apache2/conf-enabled/logformat.conf
+COPY ./remoteip.conf /etc/apache2/conf-enabled/remoteip.conf
+COPY ./entrypoint.sh /entrypoint.sh
 
 RUN mkdir /var/www/app \
     && curl -o blesta.zip -sSL https://account.blesta.com/client/plugin/download_manager/client_main/download/${DOWNLOAD_ID}/blesta-${BLESTA_VERSION}.zip \
