@@ -21,7 +21,7 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DATA_DIR_TRAEFIK}/traefik/traefik.toml:/etc/traefik/traefik.toml
+      - ${DATA_DIR}/traefik/traefik.toml:/etc/traefik/traefik.toml
 
   app:
     image: blesta:latest
@@ -34,11 +34,10 @@ services:
     depends_on:
       - db
     volumes:
-      - ${DATA_DIR_BLESTA}/blesta/app:/var/www/app/blesta
-      - ${DATA_DIR_BLESTA}/blesta/logs:/var/www/app/logs_blesta
-      - ${DATA_DIR_BLESTA}/blesta/uploads:/var/www/app/uploads
+      - ${DATA_DIR}/blesta/html:/var/www/html
+      - ${DATA_DIR}/blesta/uploads:/var/www/uploads
     labels:
-      - "traefik.http.routers.blesta.rule=Host(`${SUBDOMAIN_BLESTA}.${DOMAIN}`)"
+      - "traefik.http.routers.blesta.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.blesta.tls=true"
 
   db:
@@ -49,4 +48,4 @@ services:
     networks:
      blesta:
     volumes:
-      - ${DATA_DIR_DB}/db:/var/lib/mysql
+      - ${DATA_DIR}/db:/var/lib/mysql

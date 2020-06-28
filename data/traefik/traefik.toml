@@ -9,6 +9,9 @@
   [entryPoints.websecure]
     address = ":443"
 
+    [entryPoints.websecure.forwardedHeaders]
+      trustedIPs = ["162.158.183.1/24"]
+
 [providers.docker]
 
 [certificatesResolvers.myresolver.acme]
