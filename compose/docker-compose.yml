@@ -5,7 +5,7 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.18.238.0/24
+        - subnet: 172.69.238.0/24
 
 services:
 
@@ -24,21 +24,28 @@ services:
       - ${DATA_DIR}/traefik/traefik.toml:/etc/traefik/traefik.toml
 
   app:
-    image: blesta:latest
+    image: blesta
+   # build:
+   #  context: ../blesta_image
+   #   args:
+   #     - UID=0
+   #     - GID=0
     restart: always
     env_file:
       - .env
     networks:
       blesta:
-        ipv4_address: 172.18.238.5
+        ipv4_address: 172.69.238.5
     depends_on:
       - db
     volumes:
       - ${DATA_DIR}/blesta/html:/var/www/html
       - ${DATA_DIR}/blesta/uploads:/var/www/uploads
     labels:
-      - "traefik.http.routers.blesta.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.blesta.tls=true"
+      - "traefik.http.routers.app.rule=Host(`portal.singlbit.com`)"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.services.app.loadbalancer.server.port=8080"
+      - "traefik.docker.network=blesta"
 
   db:
     image: mariadb:10.5
