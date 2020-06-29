@@ -6,11 +6,6 @@ LABEL Maintainer="Eddy <me@edy.io>" \
 ENV BLESTA_VERSION=4.10.1 \
     DOWNLOAD_ID=152
 
-ARG UID=0
-ARG GID=0
-
-USER root
-
 # Install packages and remove default server definition
 RUN apk --no-cache add php7 php7-fpm php7-opcache php7-mysqli php7-json php7-openssl php7-curl php7-gmp \
     php7-zlib php7-xml php7-phar php7-intl php7-dom php7-xmlreader php7-ctype php7-session php7-imap \
@@ -36,9 +31,6 @@ RUN mkdir -p /var/www/html
 COPY config/entrypoint.sh /var/www/entrypoint.sh
 RUN chmod +x /var/www/entrypoint.sh
 
-#RUN usermod -o -u ${UID} nobody
-#RUN groupmod -o -g ${GID} nobody
-
 # Run as non-root user
 RUN chown -R nobody.nobody /var/www \
     && chown -R nobody.nobody /run \
@@ -63,8 +55,6 @@ VOLUME /var/www/uploads
 EXPOSE 8080
 
 ENTRYPOINT ["/var/www/entrypoint.sh"]
-
-#USER nobody
 
 # Let supervisord start nginx & php-fpm
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
