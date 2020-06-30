@@ -24,7 +24,7 @@ services:
       - ${DATA_DIR}/traefik/traefik.toml:/etc/traefik/traefik.toml
 
   app:
-    image: blesta
+    image: edymoo/blesta
     restart: always
     env_file:
       - .env
