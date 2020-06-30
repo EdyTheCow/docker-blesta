@@ -6,6 +6,9 @@ LABEL Maintainer="Eddy <me@edy.io>" \
 ENV BLESTA_VERSION=4.10.1 \
     DOWNLOAD_ID=152
 
+ARG GID=1000
+ARG UID=1000
+
 # Install packages and remove default server definition
 RUN apk --no-cache add php7 php7-fpm php7-opcache php7-mysqli php7-json php7-openssl php7-curl php7-gmp \
     php7-zlib php7-xml php7-phar php7-intl php7-dom php7-xmlreader php7-ctype php7-session php7-imap \
@@ -31,6 +34,9 @@ RUN mkdir -p /var/www/html
 COPY config/entrypoint.sh /var/www/entrypoint.sh
 RUN chmod +x /var/www/entrypoint.sh
 
+# Change UID and GID of nobody to 1000 to match most host user's IDs
+RUN usermod -u ${UID} nobody && groupmod -g ${GID} nobody
+
 # Run as non-root user
 RUN chown -R nobody.nobody /var/www \
     && chown -R nobody.nobody /run \
@@ -38,7 +44,7 @@ RUN chown -R nobody.nobody /var/www \
     && chown -R nobody.nobody /var/log/nginx
 
 # Switch to non-root user
-#USER nobody
+USER nobody
 
 # Change working directory
 WORKDIR /var/www
@@ -48,12 +54,10 @@ RUN curl -Lo blesta.zip https://account.blesta.com/client/plugin/download_manage
     && unzip blesta.zip \
     && rm blesta.zip
 
-VOLUME /var/www/html
-VOLUME /var/www/uploads
-
 # Expose the port nginx is reachable on
 EXPOSE 8080
 
+# Execute scripts on start
 ENTRYPOINT ["/var/www/entrypoint.sh"]
 
 # Let supervisord start nginx & php-fpm

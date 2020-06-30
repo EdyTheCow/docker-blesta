@@ -25,11 +25,6 @@ services:
 
   app:
     image: blesta
-   # build:
-   #  context: ../blesta_image
-   #   args:
-   #     - UID=0
-   #     - GID=0
     restart: always
     env_file:
       - .env
