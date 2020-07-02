@@ -1,70 +1,56 @@
-FROM alpine:3.12
+# About
+There’s a lack of information about setting up and running Blesta inside docker using Traefik as reverse proxy. This guide focuses on the fastest and easiest way to do that! The blesta services inside container are ran by a non root user making this setup production friendly. 
 
-LABEL Maintainer="Eddy <me@edy.io>" \
-      Description="Blesta with Nginx & PHP-FPM based on Alpine Linux"
+# Getting Started
+We’ll be using docker, docker-compose and CloudFlare for DNS challenges to generate certificates. DNS challenges allow wildcard certificates allowing you to add any subdomains on the go. If you prefer using something else, have a look at [Traefik's Docs](https://docs.traefik.io/https/acme/).
 
-ENV BLESTA_VERSION=4.10.2 \
-    DOWNLOAD_ID=154
+### Requirements
+- Basic command line knowledge
+- A domain behind Cloudflare
+- [Docker](https://docs.docker.com/engine/install/ubuntu/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-ARG GID=1000
-ARG UID=1000
+# Installation
 
-# Install packages and remove default server definition
-RUN apk --no-cache add php7 php7-fpm php7-opcache php7-mysqli php7-json php7-openssl php7-curl php7-gmp \
-    php7-zlib php7-xml php7-phar php7-intl php7-dom php7-xmlreader php7-ctype php7-session php7-imap \
-    php7-pdo_mysql php7-pdo php7-mbstring php7-gd php7-iconv php7-simplexml php7-pecl-mailparse nginx supervisor curl shadow && \
-    rm /etc/nginx/conf.d/default.conf
+### Basic configuration
+Once you have met all of the requirements, start by cloning this repository
+```
+git clone https://github.com/EdyTheCow/blesta-docker.git
+```
 
-# Download ioncube
-RUN cd /tmp \
-    && curl -sSL https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz -o ioncube.tar.gz \
-    && tar -xf ioncube.tar.gz \
-    && mv ioncube/ioncube_loader_lin_7.3.so /usr/lib/php7/modules/ioncube_loader_lin_7.3.so \
-    && echo 'zend_extension = /usr/lib/php7/modules/ioncube_loader_lin_7.3.so' > /etc/php7/conf.d/00-ioncube.ini \
-    && rm ioncube.tar.gz
+Enter the compose directory and rename `.env.example` to `.env`. The most important variables to change right now are:
 
-# Copy configs
-COPY config/nginx.conf /etc/nginx/nginx.conf
-COPY config/fpm-pool.conf /etc/php7/php-fpm.d/www.conf
-COPY config/php.ini /etc/php7/conf.d/custom.ini
-COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+| Variable | Example | Description |
+|-|:-:|-|
+| DOMAIN | example.com | Enter a domain that is behind CloudFlare, this is going to be used to access blesta. You can use a domain with subdomain if you want to. |
+| CF_API_EMAIL | your@email.com | Your CloudFlare's account email |
+| CF_API_KEY | - | Go to your CloudFlare's profile and navigate to "API Tokens". Copy the "Global API Key" |
+| MYSQL_ROOT_PASSWORD | - | Use a password generator to create a strong password |
+| MYSQL_PASSWORD | - | Don't reuse your root's password for this, generate a new one |
 
-# Create root directory
-RUN mkdir -p /var/www/html
-COPY config/entrypoint.sh /var/www/entrypoint.sh
-RUN chmod +x /var/www/entrypoint.sh
+### Starting up services
+Navigate to data folder and create a directory called `blesta`. Inside `blesta` directory  create `html` and `uploads` directories. We have to manually create them because docker creates volumes using root by default. Make sure `blesta` directory is owned by user with `1000` GID and UID. You can do this by executing `sudo chown -R 1000:1000 blesta`.
 
-# Add Blesta's cron
-RUN echo '*/5 * * * * nobody /usr/local/bin/php /var/www/app/blesta/index.php cron' > /etc/crontabs/blesta
+Blesta is running a non-root user `nobody` using `1000` UID and GID to match host's user IDs for security reasons. If your prefered host user is using different GID and UID please refer to FAQ below to see how you can change UID and GID of user inside container.
 
-# Change UID and GID of nobody to 1000 to match most host user's IDs
-RUN usermod -u ${UID} nobody && groupmod -g ${GID} nobody
+<b>Start containers</b><br />
+```
+docker-compose up -d
+```
 
-# Run as non-root user
-RUN chown -R nobody.nobody /var/www \
-    && chown -R nobody.nobody /run \
-    && chown -R nobody.nobody /var/lib/nginx \
-    && chown -R nobody.nobody /var/log/nginx
+You can now navigate to the DOMAIN you specified earlier to access blesta to start setting it up.
 
-# Switch to non-root user
-USER nobody
+### Setting up blesta
+<b>NOTE:</b> Before setting up MySQL make sure to wait at least 2 minutes from initial start up of containers. MariaDB can take a bit to initialize when started for the first time! 
 
-# Change working directory
-WORKDIR /var/www
+Once you navigate to blesta in your web browser, you should be asked to enter MySQL details. For hostname use `db`. For username and database use `blesta` and for password use `MYSQL_PASSWORD` you set earlier. Once blesta is done generating tables, you should be asked to create your first user to access blesta!
 
-# Download blesta
-RUN curl -Lo blesta.zip https://account.blesta.com/client/plugin/download_manager/client_main/download/${DOWNLOAD_ID} \
-    && unzip blesta.zip \
-    && rm blesta.zip
+# FAQ
+### What is UID and GID?
+UID stands for user id and gid is for group id. These are your linux user and group ids. To see your current user's ids use `id` command. To look up a specific user use `id username`.
+### How to change UID and GID of the user inside container?
+The reason why you would want to change these IDs is if you prefer a host user with different UID and GID other than 1000 to own the volumes. You can achieve this by editing Dockerfile and changing GID and UID to whatever ID you prefer. Then building the image using `docker build . -t blesta`. Make sure to change the image in `docker-compose.yml` to whatever you tag with it. In this case `blesta`
 
-# Expose the port nginx is reachable on
-EXPOSE 8080
-
-# Execute scripts on start
-ENTRYPOINT ["/var/www/entrypoint.sh"]
-
-# Let supervisord start nginx & php-fpm
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-
-# Healthcheck
-HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:8080/fpm-ping
+# Known issues
+- Two-Factor protection doesn't work, once setup you're unable to login even if the generated code is correct. The issue might be related to Traefik.
+- Changing default theme's colors doesn't work, this is related to how nginx is handling rewrite. Should be fixed soon.
