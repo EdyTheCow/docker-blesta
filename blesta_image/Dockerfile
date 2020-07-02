@@ -34,6 +34,9 @@ RUN mkdir -p /var/www/html
 COPY config/entrypoint.sh /var/www/entrypoint.sh
 RUN chmod +x /var/www/entrypoint.sh
 
+# Add Blesta's cron
+RUN echo '*/5 * * * * nobody /usr/local/bin/php /var/www/app/blesta/index.php cron' > /etc/crontabs/blesta
+
 # Change UID and GID of nobody to 1000 to match most host user's IDs
 RUN usermod -u ${UID} nobody && groupmod -g ${GID} nobody
 
